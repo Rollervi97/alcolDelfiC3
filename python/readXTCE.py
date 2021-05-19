@@ -1,4 +1,5 @@
 from py4j.java_gateway import JavaGateway
+from py4j.java_gateway import launch_gateway
 from py4j.protocol import Py4JJavaError
 import os
 import sys
@@ -48,10 +49,8 @@ def isWithinValidRange(entry):
 
 
 
-def process_frame(stream, data):
-    print("start process_frame function")
+def process_frame(stream, data): # maybe add values field
     model = stream.processStream(data)
-    print(model)
     entries = model.getContentList()
     #
     # print("type model", type(model))
@@ -59,6 +58,7 @@ def process_frame(stream, data):
 
     for entry in entries:
         val = entry.getValue()
+
         name = entry.getName()
 
         if not val:
@@ -72,10 +72,34 @@ def process_frame(stream, data):
         else:
             print("\n")
 
+def getContainerList (database, debugfile):
+    s = database.getStreams().iterator()
+    containers = []
+    while s.hasNext():
+        ic = s.next().getContainers().iterator()
+        print(ic.hasNext())
+        while ic.hasNext():
+            cc = ic.next()
+            print(cc.isAbstract())
+            if not cc.isAbstract():
+                print("before updating container list")
+
+                try:
+                    # temp1 = db_.getSpaceSystemTree()
+                    # print(type(temp1), temp1)
+                    # temp2 = XTCEContainerContentModel(cc, temp1, None, False)
+                    # print(type(temp2), temp2)
+                    containers.append(XTCEContainerContentModel(cc, db_.getSpaceSystemTree(), None, False).getName())
+                except Py4JJavaError as ex:
+                    print("Some unknown exception raised", ex.errmsg)
+                    debugfile.write("EXECPTION while reading containers names", ex.errmsg )
+    return containers
 
 
 
 if __name__ == '__main__' :
+
+    # launch_gateway(classpath='org.xtce.toolkit.*')
 
     gateway = JavaGateway()
 
@@ -89,18 +113,19 @@ if __name__ == '__main__' :
     XTCETMStream = gateway.jvm.org.xtce.toolkit.XTCETMStream
     XTCEValidRange = gateway.jvm.org.xtce.toolkit.XTCEValidRange
     XTCEContainer = gateway.jvm.org.xtce.toolkit.XTCETMContainer
+    XTCEEngineeringType = gateway.jvm.org.xtce.toolkit.XTCETypedObject.EngineeringType
 
     File = gateway.jvm.java.io.File
     Iterator = gateway.jvm.java.util.Iterator
     List = gateway.jvm.java.util.List
 
     # setting up tiemscaledb database
+    """
     CONNECTION = "dbname=tsdb user=tsdbadmin password=secret host=host.com port=5432 sslmode=require"
     dbconn = psycopg2.connect(CONNECTION)
     insert_data(dbconn)
     cur = dbconn.cursor()
 
-    """
     timescaledb quick tutorial
     query_create_newtable = "CREATE TABLE table_name (id SERIAL PRIMARY KEY, type VARCHAR(50), location VARCHAR(50))"
     # execute statement 
@@ -111,7 +136,7 @@ if __name__ == '__main__' :
     
     
     """
-
+    debugrec = open("debug_rec.txt", 'w')
     path = os.getcwd()
     file = "Delfi-C3.xml"
     fp = path+ "\\"+ file
@@ -119,10 +144,19 @@ if __name__ == '__main__' :
     if not os.path.isfile(fp):
         sys.error("XML XTCE file not found")
 
-    debugrec = open("debug_rec.txt", 'w')
+
+    db_ = XTCEDatabase(File(fp), True, False, True)
+
+    containerList = getContainerList(db_, debugrec)
+
+
+    print(containerList)
+
+    print("End of container test")
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     # define a function that reads database binary thing one by one
-    # hk = main.bytehk()
-    # p = main.bytep()
+
 
     pathlog = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack'
     filenamelist = os.listdir(pathlog)
@@ -161,15 +195,15 @@ if __name__ == '__main__' :
                     print(type(sstream))
 
                     process_frame(stream, hexb)
-                    # print(type(stream))
-                    # main.execute(fp, hk)
+
                     succ += 1
                 except Py4JJavaError as ex:
                     print("Some unknown exception raised", ex.errmsg)
                     debugrec.write(namelog[:-4], " ",linec, " EXCEPTION ", ex.errmsg )
+
         print('Successfully parsed frames = ', succ)
 
-
+    # after this just random testing crap       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     namelog = '20190130_090441z_145868400_32789_packets.log'
     logname = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack\\20190130_090441z_145868400_32789_packets.log'
     logname = pathlog + '\\' + namelog

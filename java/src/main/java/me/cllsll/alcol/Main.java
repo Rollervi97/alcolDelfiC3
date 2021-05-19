@@ -173,6 +173,24 @@ public class Main {
         }
         return true;
     }
+//
+//    static <vartype> getContainerList(XTCEDatabase database) {
+//        List<XTCEContainerContentModel> containers = new LinkedList<>();
+//
+//        Iterator<XTCETMStream> s = database.getStreams().iterator();
+//        while (s.hasNext())
+//        {
+//            Iterator<XTCETMContainer> ic = s.next().getContainers().iterator();
+//            while (ic.hasNext())
+//            {
+//                XTCETMContainer cc = ic.next();
+//                if (!cc.isAbstract())
+//                {
+//                    containers.add(new XTCEContainerContentModel(cc,
+//                            Configuration.getInstance().getXTCEDatabase().getSpaceSystemTree(), null, false));
+//                }
+//            }
+//    }
 
 
 }
