@@ -1,6 +1,9 @@
 from py4j.java_gateway import JavaGateway
+from py4j.protocol import Py4JJavaError
 import os
 import sys
+from datetime import datetime
+import psycopg2
 
 
 def isWithinValidRange(entry):
@@ -48,6 +51,7 @@ def isWithinValidRange(entry):
 def process_frame(stream, data):
     print("start process_frame function")
     model = stream.processStream(data)
+    print(model)
     entries = model.getContentList()
     #
     # print("type model", type(model))
@@ -84,18 +88,108 @@ if __name__ == '__main__' :
     XTCEParameter = gateway.jvm.org.xtce.toolkit.XTCEParameter
     XTCETMStream = gateway.jvm.org.xtce.toolkit.XTCETMStream
     XTCEValidRange = gateway.jvm.org.xtce.toolkit.XTCEValidRange
+    XTCEContainer = gateway.jvm.org.xtce.toolkit.XTCETMContainer
+
     File = gateway.jvm.java.io.File
     Iterator = gateway.jvm.java.util.Iterator
     List = gateway.jvm.java.util.List
 
+    # setting up tiemscaledb database
+    CONNECTION = "dbname=tsdb user=tsdbadmin password=secret host=host.com port=5432 sslmode=require"
+    dbconn = psycopg2.connect(CONNECTION)
+    insert_data(dbconn)
+    cur = dbconn.cursor()
 
+    """
+    timescaledb quick tutorial
+    query_create_newtable = "CREATE TABLE table_name (id SERIAL PRIMARY KEY, type VARCHAR(50), location VARCHAR(50))"
+    # execute statement 
+    # NOTE: better to create a class with database infos and methods to create tables and other commands
+    cur.execute(query_create_newtable)
+    dbconn.commit()
+    # cur.close()
+    
+    
+    """
+
+    path = os.getcwd()
+    file = "Delfi-C3.xml"
+    fp = path+ "\\"+ file
+    print(os.path.isfile(fp))
+    if not os.path.isfile(fp):
+        sys.error("XML XTCE file not found")
+
+    debugrec = open("debug_rec.txt", 'w')
     # define a function that reads database binary thing one by one
-    hk = main.bytehk()
-    p = main.bytep()
-    # print(main.bytehk())
+    # hk = main.bytehk()
+    # p = main.bytep()
+
+    pathlog = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack'
+    filenamelist = os.listdir(pathlog)
+    #
+    succ = 0
+    for namelog in filenamelist:
+        if namelog[-4:] == ".log":
+            logname = pathlog + '\\' + namelog
+            f = open(logname)
+            linec = 0
+            for line in f.readlines():
+                linec += 1
+                ss = line.split(',',-1)
+                if len(ss):
+                    t = ss[0]
+                    freq = ss[1]
+                    hexs = ss[2]
+                else:
+                    t = ss[0]
+                    hexs = ss[1]
 
 
-    print(hk)
+                date = datetime.strptime(t[:-4], '%Y-%m-%d %H:%M:%S.%f')
+                hexb = bytes.fromhex(hexs)
+
+                try:
+
+                    db_ = XTCEDatabase(File(fp), True, False, True)
+                    warns = db_.getDocumentWarnings()
+                    for w in warns:
+                        print("ERROR: ", line)
+                        debugrec.write(namelog[:-4], " ",linec, " ERROR ", w )
+
+                    stream = db_.getStream("TLM")
+                    sstream = db_.getStream().iterator
+                    print(type(sstream))
+
+                    process_frame(stream, hexb)
+                    # print(type(stream))
+                    # main.execute(fp, hk)
+                    succ += 1
+                except Py4JJavaError as ex:
+                    print("Some unknown exception raised", ex.errmsg)
+                    debugrec.write(namelog[:-4], " ",linec, " EXCEPTION ", ex.errmsg )
+        print('Successfully parsed frames = ', succ)
+
+
+    namelog = '20190130_090441z_145868400_32789_packets.log'
+    logname = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack\\20190130_090441z_145868400_32789_packets.log'
+    logname = pathlog + '\\' + namelog
+    f = open(logname)
+    splitstring= f.readline().split(',',-1)
+    print(type(splitstring), splitstring, len(splitstring))
+
+
+    lengthlist = []
+
+    line = f.readline()
+    t,freq, hexstr = line.split(',', 3)
+    hexbyte = bytes.fromhex(hexstr)
+
+
+    # print(type(t), t[:-4])
+    date = datetime.strptime(t[:-4], '%Y-%m-%d %H:%M:%S.%f')
+    # print(type(date), date)
+    hexbyte = bytes.fromhex(hexstr)
+    print(sys.getsizeof(hexbyte), hexbyte)
 
     # in static void main in the java code there is:
     # definition of test messages, here achieved using "main.bytehk()" and "main.bytep()"
@@ -107,12 +201,40 @@ if __name__ == '__main__' :
     if not os.path.isfile(fp):
         sys.error("XML XTCE file not found")
 
-    db_ = XTCEDatabase(File(fp), True, False, True)
-    # print(type(db_))
-    stream = db_.getStream("TLM")
-    process_frame(stream, hk)
-    # print(type(stream))
-    #
-    # main.execute(fp, hk)
+    try:
+
+        db_ = XTCEDatabase(File(fp), True, False, True)
+        warns = db_.getDocumentWarnings()
+        for line in warns:
+            print("ERROR: ", line)
+
+        stream = db_.getStream("TLM")
+        # try to get container list
+        if 0==1:
+            sstream = db_.getStreams().iterator()
+            print(type(sstream))
+            containers = []
+            while sstream.hasNext():
+                ic = sstream.next().getContainers().iterator()
+                while ic.hasNext():
+                    cc = ic.next()
+                    if not cc.isAbstract():
+                        containers.append(XTCEContainerContentModel(db_.getSpaceSystemTree(), None, False))
+            # for item in sstream:
+            #     print(type(item), item)
+            print(containers, type(containers))
+
+
+        process_frame(stream, hexbyte)
+        # print(type(stream))
+        # main.execute(fp, hk)
+    except Py4JJavaError as ex:
+        print("Some unknown exception raised", ex.errmsg)
+
+
+    print("out of the try except loop")
+
+
+
 
 
