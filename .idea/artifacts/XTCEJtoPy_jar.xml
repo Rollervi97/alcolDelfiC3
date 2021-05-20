@@ -1,0 +1,17 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="XTCEJtoPy.jar">
+    <output-path>$PROJECT_DIR$/java/out/artifacts/XTCEJtoPy_jar</output-path>
+    <root id="archive" name="XTCEJtoPy.jar">
+      <element id="module-output" name="Alcol" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/glassfish/jaxb/txw2/2.4.0-b180830.0438/txw2-2.4.0-b180830.0438.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/net/sf/py4j/py4j/0.10.9.2/py4j-0.10.9.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/xtce/xtcetools/1.1.5/xtcetools-1.1.5.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/sun/istack/istack-commons-runtime/3.0.7/istack-commons-runtime-3.0.7.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jvnet/staxex/stax-ex/1.8/stax-ex-1.8.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/sun/xml/fastinfoset/FastInfoset/1.2.15/FastInfoset-1.2.15.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/glassfish/jaxb/jaxb-runtime/2.4.0-b180830.0438/jaxb-runtime-2.4.0-b180830.0438.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/javax/xml/bind/jaxb-api/2.4.0-b180830.0359/jaxb-api-2.4.0-b180830.0359.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

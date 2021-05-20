@@ -100,10 +100,12 @@ def getContainerList (database, debugfile):
 if __name__ == '__main__' :
 
     # launch_gateway(classpath='org.xtce.toolkit.*')
+    launch_gateway(jarpath='..\\java\\out\\artifacts\\XTCEJtoPy_jar\\XTCEJtoPy.jar',
+                   classpath='me.xtce.jtopy.Main',
+                   port=25333,
+                   die_on_exit=True)
 
     gateway = JavaGateway()
-
-    main = gateway.jvm.me.cllsll.alcol.Main()
 
     XTCEContainerContentModel = gateway.jvm.org.xtce.toolkit.XTCEContainerContentModel
     XTCEContainerEntryValue = gateway.jvm.org.xtce.toolkit.XTCEContainerEntryValue
@@ -191,9 +193,6 @@ if __name__ == '__main__' :
                         debugrec.write(namelog[:-4], " ",linec, " ERROR ", w )
 
                     stream = db_.getStream("TLM")
-                    sstream = db_.getStream().iterator
-                    print(type(sstream))
-
                     process_frame(stream, hexb)
 
                     succ += 1
@@ -244,19 +243,7 @@ if __name__ == '__main__' :
 
         stream = db_.getStream("TLM")
         # try to get container list
-        if 0==1:
-            sstream = db_.getStreams().iterator()
-            print(type(sstream))
-            containers = []
-            while sstream.hasNext():
-                ic = sstream.next().getContainers().iterator()
-                while ic.hasNext():
-                    cc = ic.next()
-                    if not cc.isAbstract():
-                        containers.append(XTCEContainerContentModel(db_.getSpaceSystemTree(), None, False))
-            # for item in sstream:
-            #     print(type(item), item)
-            print(containers, type(containers))
+
 
 
         process_frame(stream, hexbyte)
