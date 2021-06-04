@@ -47,53 +47,82 @@ def isWithinValidRange(entry):
 
         return True
 
+def getSamp1():
+    a = b'\xA8\x98\x9A\x40\x40\x40\x00\x88\x98\x8C\x92\x86\x66\x01\x03\xF0\xE1\x08\xFA\x01\xDE\x84\xF4\xFF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\x3F\x97\x96\x55\x00\x00\x1F\xB6\xC0\x00\x20\x02\x00\x7E\x3C\x76\x07\x00\xD5\x00\x80\x02\x00\xD4\x03\x40\x18\x00\x90\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x5E\x7F\x0A\x8D'
+    return a
+
+# def getSamp2():
 
 
-def process_frame(stream, data): # maybe add values field
+
+def process_frame(stream, data):
+    # print(data)
     model = stream.processStream(data)
     entries = model.getContentList()
-    #
+    print("Entering process frame func")
     # print("type model", type(model))
     # print("entries", type(entries))
-
+    val_list = []
+    name_list = []
+    validity = []
+    meas_unit = []
+    # print(type(entries), len(entries))
     for entry in entries:
         val = entry.getValue()
 
         name = entry.getName()
+        name_list.append(name)
 
-        if not val:
-            print(name, " empty value\n")
-        else:
+        if name == "FrameID":
             print(name, " ",val.getCalibratedValue(), " ", entry.getParameter().getUnits(), " (", val.getRawValueHex(), ") ")
 
 
-        if not isWithinValidRange(entry):
-            print("INVALID!! \n")
+
+        if not val:
+            # print(name, " empty value\n")
+            val_list.append(None)
+            meas_unit.append(None)
         else:
-            print("\n")
+            # print(name, " ",val.getCalibratedValue(), " ", entry.getParameter().getUnits(), " (", val.getRawValueHex(), ") ")
+
+            val_list.append(val.getCalibratedValue())
+            meas_unit.append(entry.getParameter().getUnits())
+
+        if not isWithinValidRange(entry):
+            validity.append(0)
+            # print("INVALID!! \n")
+        else:
+            validity.append(1)
+            # print("\n")
+
+
+    return name_list, val_list, validity, meas_unit
+
 
 def getContainerList (database, debugfile):
     s = database.getStreams().iterator()
-    containers = []
+    containersname = []
+    containersobj = []
     while s.hasNext():
         ic = s.next().getContainers().iterator()
-        print(ic.hasNext())
+
         while ic.hasNext():
             cc = ic.next()
-            print(cc.isAbstract())
+
             if not cc.isAbstract():
-                print("before updating container list")
+
 
                 try:
                     # temp1 = db_.getSpaceSystemTree()
                     # print(type(temp1), temp1)
                     # temp2 = XTCEContainerContentModel(cc, temp1, None, False)
                     # print(type(temp2), temp2)
-                    containers.append(XTCEContainerContentModel(cc, db_.getSpaceSystemTree(), None, False).getName())
+                    containersname.append(XTCEContainerContentModel(cc, db_.getSpaceSystemTree(), None, False).getName())
+                    containersobj.append(XTCEContainerContentModel(cc, db_.getSpaceSystemTree(), None, False))
                 except Py4JJavaError as ex:
                     print("Some unknown exception raised", ex.errmsg)
                     debugfile.write("EXECPTION while reading containers names", ex.errmsg )
-    return containers
+    return containersname, containersobj
 
 
 
@@ -121,11 +150,42 @@ if __name__ == '__main__' :
     Iterator = gateway.jvm.java.util.Iterator
     List = gateway.jvm.java.util.List
 
-    # setting up tiemscaledb database
+
     """
-    CONNECTION = "dbname=tsdb user=tsdbadmin password=secret host=host.com port=5432 sslmode=require"
-    dbconn = psycopg2.connect(CONNECTION)
-    insert_data(dbconn)
+    Steps:
+    (1) Read containers and relative fields. Check if tables already exist, if not Create tables accordingly.
+    (2) Read files row by row and write each frame in the proper table.
+    """
+
+
+    # setting up tiemscaledb database
+    # CONNECTION = "dbname=alcoldatabase user=alcol password=alcolpassword host=127.0.0.1 port=5432"
+    # dbconn = psycopg2.connect(CONNECTION)
+    # cur = dbconn.cursor()
+    #
+    #
+    # query_create_newtable = "CREATE TABLE alcoltab1 ();"
+    # print(type(dbconn))
+    # print(query_create_newtable)
+    # cur.execute(query_create_newtable)
+    #
+    # s = "SELECT"
+    # s += " table_schema"
+    # s += ", table_name"
+    # s += " FROM information_schema.tables"
+    # s += " WHERE "
+    # s += "("
+    # s += " table_schema = 'public'"
+    # s += ")"
+    # s += " ORDER BY table_name;"
+    #
+    # tablist = cur.execute("select * from _timescaledb_catalog.hypertable;")
+    # print(type(tablist), tablist)
+    #
+    # tablist = cur.execute(s)
+    # print(type(tablist), tablist)
+    """
+    
     cur = dbconn.cursor()
 
     timescaledb quick tutorial
@@ -138,9 +198,14 @@ if __name__ == '__main__' :
     
     
     """
+
     debugrec = open("debug_rec.txt", 'w')
     path = os.getcwd()
-    file = "Delfi-C3.xml"
+    samp1 = getSamp1()
+    print(samp1)
+    print(type(samp1))
+    file = "Delfi-C3_simplified.xml"
+    # file = "Delfi-C3.xml"
     fp = path+ "\\"+ file
     print(os.path.isfile(fp))
     if not os.path.isfile(fp):
@@ -148,31 +213,68 @@ if __name__ == '__main__' :
 
 
     db_ = XTCEDatabase(File(fp), True, False, True)
+    # stream = db_.getStream("TLM")
+    # name, values, valid, MU = process_frame(stream, samp1)
+    # print("printing namelist \n",name)
+    # print("printing value \n",values)
+    # print("printing validity \n",valid)
+    # print("printing meas unit \n",MU)
+    # if not len(name)==len(values) or not len(valid)==len(values) or not len(valid)==len(MU):
+    #     print("printing namelist \n",len(name))
+    #     print("printing value \n",len(values))
+    #     print("printing validity \n",len(valid))
+    #     print("printing meas unit \n",len(MU))
+    #     sys.exit("list length not correct")
+    containerList, containerObj = getContainerList(db_, debugrec)
 
-    containerList = getContainerList(db_, debugrec)
+    lala1 = containerObj[1]
+    lala2 = lala1.getContentList()
+    contc = 0
+    contit = 0
 
+    print(lala2.toString())
+    f = True
+    for cont in containerObj:
+        contc +=1
+        for it in cont.getContentList():
+
+            contit += 1
+            la1 = cont.getName()
+            la2 = it.getName()
+            la3 = it
+            la4 = it.getValue()
+            if la4:
+                print("Value changed")
+                la5 = la4.getCalibratedValue()
+            else:
+                print("value not changed")
+            print(la1, "---" , la2, "\n")
+
+
+
+
+    print("tot container %f, tot fields %f", contc, contit)
 
     print(containerList)
 
     print("End of container test")
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    # define a function that reads database binary thing one by one
 
 
     pathlog = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack'
     filenamelist = os.listdir(pathlog)
     #
     succ = 0
+    # reading each frame from each file
     for namelog in filenamelist:
-        if namelog[-4:] == ".log":
+        if namelog[-4:] == ".log": # reading each ".log" file
             logname = pathlog + '\\' + namelog
             f = open(logname)
             linec = 0
-            for line in f.readlines():
+            for line in f.readlines(): # reading each line/frame of the file
                 linec += 1
                 ss = line.split(',',-1)
-                if len(ss):
+                print(len(ss))
+                if len(ss) == 3:
                     t = ss[0]
                     freq = ss[1]
                     hexs = ss[2]
@@ -183,26 +285,34 @@ if __name__ == '__main__' :
 
                 date = datetime.strptime(t[:-4], '%Y-%m-%d %H:%M:%S.%f')
                 hexb = bytes.fromhex(hexs)
-
+                # print(hexs)
+                # print("-> ", hexb)
+                # print("ready to open xtce database and get values")
                 try:
 
                     db_ = XTCEDatabase(File(fp), True, False, True)
                     warns = db_.getDocumentWarnings()
                     for w in warns:
-                        print("ERROR: ", line)
+                        print("ERROR: ", w)
+
                         debugrec.write(namelog[:-4], " ",linec, " ERROR ", w )
 
                     stream = db_.getStream("TLM")
-                    process_frame(stream, hexb)
-
+                    name, values, valid, MU = process_frame(stream, hexb) #define useful output for this function
+                    # print("printing namelist \n",name)
+                    # print("printing value \n",values)
+                    # print("printing validity \n",valid)
+                    # print("printing meas unit \n",MU)
                     succ += 1
                 except Py4JJavaError as ex:
-                    print("Some unknown exception raised", ex.errmsg)
-                    debugrec.write(namelog[:-4], " ",linec, " EXCEPTION ", ex.errmsg )
+                    print("Some unknown exception raised", ex.errmsg, ex.java_exception)
+                    strerr = namelog[:-4]+ " "+str(linec)+ " EXCEPTION " + ex.errmsg
+                    debugrec.write(strerr)
 
         print('Successfully parsed frames = ', succ)
 
     # after this just random testing crap       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     namelog = '20190130_090441z_145868400_32789_packets.log'
     logname = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack\\20190130_090441z_145868400_32789_packets.log'
     logname = pathlog + '\\' + namelog
@@ -254,7 +364,7 @@ if __name__ == '__main__' :
 
 
     print("out of the try except loop")
-
+"""
 
 
 
