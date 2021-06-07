@@ -53,7 +53,37 @@ def getSamp1():
 
 # def getSamp2():
 
+def getTab(tabname, fieldlist, fieldtype, notnulllist,PKindex):
 
+    if not len(fieldlist) == len(fieldtype) or not len(fieldlist) == len(notnulllist) or PKindex<0 or PKindex>len(notnulllist):
+        print("command not executed - lenght of required input not correct")
+        return " "
+
+    tabgenq = "CREATE TABLE public."+tabname + " ( "
+    for i in range(len(fieldlist)):
+        tabgenq += fieldlist[i]+" "+fieldtype[i]
+        if notnulllist[i] == 1:
+            tabgenq += " NOT NULL,"
+
+        else:
+            tabgenq += ","
+
+
+    tabgenq = tabgenq[:-1]
+    tabgenq += ");"
+    return tabgenq
+
+def writeFrame(tabname, fieldlist, value):
+    wf = "INSERT INTO public." + tabname + " ("
+    for i in range(len(fieldlist)):
+        wf += " " +str(fieldlist[i]) +","
+    wf = wf[:-1] + ") VALUES ("
+    for i in range(len(value)):
+        # wf += " " + str(value[i])+","
+        wf += " %s,"
+
+    wf = wf[:-1] + ")"
+    return wf
 
 def process_frame(stream, data):
     # print(data)
@@ -72,9 +102,8 @@ def process_frame(stream, data):
 
         name = entry.getName()
         name_list.append(name)
-
-        if name == "FrameID":
-            print(name, " ",val.getCalibratedValue(), " ", entry.getParameter().getUnits(), " (", val.getRawValueHex(), ") ")
+        # if name == "FrameID":
+        #     print(name, " ",val.getCalibratedValue(), " ", entry.getParameter().getUnits(), " (", val.getRawValueHex(), ") ")
 
 
 
@@ -159,9 +188,9 @@ if __name__ == '__main__' :
 
 
     # setting up tiemscaledb database
-    # CONNECTION = "dbname=alcoldatabase user=alcol password=alcolpassword host=127.0.0.1 port=5432"
-    # dbconn = psycopg2.connect(CONNECTION)
-    # cur = dbconn.cursor()
+    CONNECTION = "dbname=alcoldatabase user=alcol password=alcolpassword host=127.0.0.1 port=5432"
+    dbconn = psycopg2.connect(CONNECTION)
+    cur = dbconn.cursor()
     #
     #
     # query_create_newtable = "CREATE TABLE alcoltab1 ();"
@@ -202,8 +231,7 @@ if __name__ == '__main__' :
     debugrec = open("debug_rec.txt", 'w')
     path = os.getcwd()
     samp1 = getSamp1()
-    print(samp1)
-    print(type(samp1))
+
     file = "Delfi-C3_simplified.xml"
     # file = "Delfi-C3.xml"
     fp = path+ "\\"+ file
@@ -227,37 +255,6 @@ if __name__ == '__main__' :
     #     sys.exit("list length not correct")
     containerList, containerObj = getContainerList(db_, debugrec)
 
-    lala1 = containerObj[1]
-    lala2 = lala1.getContentList()
-    contc = 0
-    contit = 0
-
-    print(lala2.toString())
-    f = True
-    for cont in containerObj:
-        contc +=1
-        for it in cont.getContentList():
-
-            contit += 1
-            la1 = cont.getName()
-            la2 = it.getName()
-            la3 = it
-            la4 = it.getValue()
-            if la4:
-                print("Value changed")
-                la5 = la4.getCalibratedValue()
-            else:
-                print("value not changed")
-            print(la1, "---" , la2, "\n")
-
-
-
-
-    print("tot container %f, tot fields %f", contc, contit)
-
-    print(containerList)
-
-    print("End of container test")
 
 
     pathlog = 'C:\\Users\\ASUS\\Desktop\\LUNAR_ZEBRO\\DELFI\\PyTrack\\PyTrack'
@@ -296,14 +293,22 @@ if __name__ == '__main__' :
                         print("ERROR: ", w)
 
                         debugrec.write(namelog[:-4], " ",linec, " ERROR ", w )
-
+                    print("About to execute process_frame, the total frames processed from this file is: ", linec, "\n")
                     stream = db_.getStream("TLM")
                     name, values, valid, MU = process_frame(stream, hexb) #define useful output for this function
                     # print("printing namelist \n",name)
                     # print("printing value \n",values)
                     # print("printing validity \n",valid)
                     # print("printing meas unit \n",MU)
+
+
+                    name.insert(0, "time")
+                    values.insert(0, str(t)[:-4])
                     succ += 1
+                    smt1 = writeFrame(values[6], name, values)
+                    cur.execute(smt1, values)
+                    dbconn.commit()
+                    print(smt1)
                 except Py4JJavaError as ex:
                     print("Some unknown exception raised", ex.errmsg, ex.java_exception)
                     strerr = namelog[:-4]+ " "+str(linec)+ " EXCEPTION " + ex.errmsg
